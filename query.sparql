@@ -13,16 +13,16 @@ WHERE {
   VALUES (?jaartal_query) { (2018) (2019) (2020) }
 
   GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
-  {
-        SELECT DISTINCT ?dossier_URI ?nieuwsbriefInfo_URI
-        WHERE {
-          GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
-            ?dossier_URI vldossier:doorloopt
-              /^vlbesluitvorming:vindtPlaatsTijdens
-              /vlbesluitvorming:genereertAgendapunt
-              /^vlbesluitvorming:heeftOnderwerp
-              /prov:generated ?nieuwsbriefInfo_URI .
-          }
+    {
+      SELECT DISTINCT ?dossier_URI ?nieuwsbriefInfo_URI
+      WHERE {
+        GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
+          ?dossier_URI vldossier:doorloopt
+            /^vlbesluitvorming:vindtPlaatsTijdens
+            /vlbesluitvorming:genereertAgendapunt
+            /^vlbesluitvorming:heeftOnderwerp
+            /prov:generated ?nieuwsbriefInfo_URI .
+        }
       }
     }
 
@@ -37,8 +37,16 @@ WHERE {
   }
 
   OPTIONAL {
-    GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
-      { ?nieuwsbriefInfo_URI ext:themesOfSubcase ?themaCode . }
+    { 
+      { 
+        GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
+          { ?nieuwsbriefInfo_URI ext:themesOfSubcase ?themaCode . }
+        } 
+      } UNION {
+        GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
+          { ?nieuwsbriefInfo_URI dct:subject ?themaCode . }
+        }
+      }
     }
 
     GRAPH <http://mu.semte.ch/graphs/public> {
