@@ -1,6 +1,4 @@
-#223437
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
-
 PREFIX prov: <http://www.w3.org/ns/prov#>
 PREFIX dct: <http://purl.org/dc/terms/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
@@ -8,13 +6,14 @@ PREFIX vldossier: <https://data.vlaanderen.be/ns/dossier#>
 PREFIX vlbesluitvorming: <http://data.vlaanderen.be/ns/besluitvorming#>
 PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-SELECT ?jaartal ?jaartal_uit_dossier ?thema_o ?dossier_URI ?dossier_titel ?nieuwsbriefInfo_URI ?nieuwsbrief_titel
+SELECT ?jaartal ?thema ?dossier_URI ?dossier_titel
 WHERE {
   VALUES (?jaartal_query) { (2018) (2019) (2020) }
 
   GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
   {
-        SELECT DISTINCT ?dossier_URI ?nieuwsbriefInfo_URI
+      {
+        SELECT ?dossier_URI ?nieuwsbriefInfo_URI (MAX(?nieuwsbriefInfo_datum_o) AS ?nieuwsbriefInfo_datum)
         WHERE {
           GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
             ?dossier_URI vldossier:doorloopt
@@ -23,6 +22,13 @@ WHERE {
               /^vlbesluitvorming:heeftOnderwerp
               /prov:generated ?nieuwsbriefInfo_URI .
           }
+
+          OPTIONAL { ?nieuwsbriefInfo_URI dct:issued ?nieuwsbriefInfo_datum_v1 . }
+          OPTIONAL { ?nieuwsbriefInfo_URI ext:aangepastOp ?nieuwsbriefInfo_datum_v2 . } 
+
+          BIND (COALESCE(?nieuwsbriefInfo_datum_v1, ?nieuwsbriefInfo_datum_v2, "2000-01-01"^^xsd:dateTime) AS ?nieuwsbriefInfo_datum_o)
+        }
+        GROUP BY ?dossier_URI ?nieuwsbriefInfo_URI
       }
     }
 
@@ -31,29 +37,35 @@ WHERE {
 
     OPTIONAL { ?nieuwsbriefInfo_URI dct:title ?nieuwsbriefInfo_standaard_titel . }
     OPTIONAL { ?nieuwsbriefInfo_URI dct:alternative ?nieuwsbriefInfo_alternatieve_titel . }
-
-    OPTIONAL { ?nieuwsbriefInfo_URI dct:issued ?nieuwsbriefInfo_datum . }
-    OPTIONAL { ?dossier_URI dct:created ?dossier_datum . }
   }
 
   OPTIONAL {
-    GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
-      { ?nieuwsbriefInfo_URI ext:themesOfSubcase ?themaCode . }
+    { 
+      SELECT DISTINCT *
+      WHERE { 
+         {
+           GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
+            { ?nieuwsbriefInfo_URI ext:themesOfSubcase ?themaCode . }
+          } 
+        } UNION {
+          {
+            GRAPH <http://mu.semte.ch/graphs/organizations/kanselarij> {
+              { ?nieuwsbriefInfo_URI dct:subject ?themaCode . }
+            }
+          } 
+        }
+      }
     }
 
     GRAPH <http://mu.semte.ch/graphs/public> {
-      ?themaCode skos:prefLabel ?thema .
+      ?themaCode skos:prefLabel ?thema_o .
     }
   }
 
-  BIND (COALESCE(?thema, "<Geen thema>") AS ?thema_o)
-  BIND (IF (BOUND(?nieuwsbriefInfo_datum), ?nieuwsbriefInfo_datum,
-    IF (BOUND(?dossier_datum), ?dossier_datum, "2000-01-01T00:00:00"^^xsd:dateTime)) AS ?datum)
-  BIND (YEAR(?datum) AS ?jaartal)
+  BIND (IF( BOUND(?thema_o), ?thema_o, "<Geen thema>") AS ?thema)
+
+  BIND (YEAR(?nieuwsbriefInfo_datum) AS ?jaartal)
   FILTER (?jaartal = ?jaartal_query)
-
-  BIND (IF (BOUND(?dossier_datum), "*", "") AS ?jaartal_uit_dossier)
-
 
   BIND (
     IF(BOUND(?dossier_standaard_titel) && STRLEN(?dossier_standaard_titel) > 0, ?dossier_standaard_titel, 
@@ -63,7 +75,7 @@ WHERE {
   BIND (
     IF(BOUND(?nieuwsbriefInfo_standaard_titel) && STRLEN(?nieuwsbriefInfo_standaard_titel) > 0, ?dossier_standaard_titel, 
     IF(BOUND(?nieuwsbriefInfo_alternatieve_titel) && STRLEN(?nieuwsbriefInfo_alternatieve_titel) > 0, ?nieuwsbriefInfo_alternatieve_titel, 
-    "<Geen nieuwsbrieftitel>")) AS ?nieuwsbrief_titel)
+    "<Geen nieuwsbrieftitel>")) AS ?nieuwsbriefInfo_titel)
 
 }
-ORDER BY ?jaartal ?thema_o ?nieuwsbriefInfo_datum
+ORDER BY ?jaartal ?thema ?nieuwsbriefInfo_datum
