@@ -6,7 +6,7 @@ PREFIX vldossier: <https://data.vlaanderen.be/ns/dossier#>
 PREFIX vlbesluitvorming: <http://data.vlaanderen.be/ns/besluitvorming#>
 PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
-SELECT ?jaartal ?nieuwsbriefInfo_datum ?thema ?dossier_URI ?dossier_titel ?nieuwsbriefInfo_URI ?nieuwsbriefInfo_titel
+SELECT ?jaartal ?thema ?dossier_URI ?dossier_titel
 WHERE {
   VALUES (?jaartal_query) { (2018) (2019) (2020) }
 
